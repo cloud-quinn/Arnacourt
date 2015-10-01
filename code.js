@@ -4,7 +4,7 @@ var context = null;
 var scoreArea = 25;
 var background = '#559955';
 var altBackground = '#555599';
-var spriteSize = 10;
+var spriteSize = 15;
 var gameOverText = [
 "The Arnak's triumphed.", 
 "The day is done.", 
@@ -16,7 +16,7 @@ var gameOverText = [
 "",
 "Game over.  Press any key."];
 
-var lives, actors, collectables, score, level, message;
+var lives, actors, collectables, score, level, message, night;
 
 var library = {
   "select": {"Volume":{"Sustain":0.1,"Decay":0.15,"Punch":0.55}},
@@ -63,6 +63,7 @@ function init(){
   collectables = 2;
   score = 0;
   level = 1;
+  night=0;
   createActors();
 };
 
@@ -75,6 +76,7 @@ function redraw(){
   clearField(context); 
   drawActors(context,actors);
   updateScore(context, score);
+  night += 0.1*level;
 
 };
 
@@ -124,11 +126,12 @@ function resetLevel(field, actors)
   actors.player.y = fieldHeight - scoreArea - spriteSize;
   actors.arnak.x = fieldWidth-spriteSize;
   actors.arnak.y = 0 
+  night=0;
 }
 
 function advanceLevel(actors){
   level++;
-
+  night=0;
   for(var a in actors){
     var actor = actors[a];
     if (actor.value > 0){
@@ -145,10 +148,9 @@ function advanceLevel(actors){
 
   actors.player.x = 0;
   actors.player.y = fieldHeight - scoreArea;
-  actors.player.speed+=2;
   actors.arnak.x = fieldWidth-spriteSize;
   actors.arnak.y = 0
-  actors.arnak.speed = 1+(0.5*(level-1));
+  actors.arnak.speed = Math.ceil(level/4);
   if (collectables < 10){
     var x = Math.floor(Math.random() * fieldWidth - spriteSize*(2/3));
     var y = Math.floor(Math.random() * fieldHeight - spriteSize*(2/3));
@@ -232,10 +234,17 @@ function createActors(){
   actors.player = {hide: false, name: 'player', value:0, harm: 0, x:0, y:fieldHeight-scoreArea,width:spriteSize,height:spriteSize,speed:10*level,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
   actors.arnak  = {hide: false, name: 'arnak', value:0, harm: 1, x:fieldWidth, y:0,width:spriteSize,height:spriteSize,speed:1,data:{lastX:0, lastY:0}, tick: function(field){
 
-    if (actors.player.x < this.x) this.x-=this.speed;
-    if(actors.player.x > this.x) this.x+=this.speed;
-    if (actors.player.y > this.y) this.y+=this.speed;
-    if (actors.player.y < this.y) this.y-=this.speed;
+    var edgex = this.x;
+    var edgey = this.y + this.height;
+
+    var hyp = Math.sqrt(edgex * edgex + edgey * edgey);
+    var adjustedSpeed = this.speed;
+    if (hyp <= night) adjustedSpeed *= 2;
+
+    if (actors.player.x < this.x) this.x-=adjustedSpeed;
+    if(actors.player.x > this.x) this.x+=adjustedSpeed;
+    if (actors.player.y > this.y) this.y+=adjustedSpeed;
+    if (actors.player.y < this.y) this.y-=adjustedSpeed;
 
   }, draw: drawArnak};
   for(var c = 0; c < collectables; c++){
@@ -281,7 +290,14 @@ function clearField(context)
   context.clearRect(0,0,fieldWidth, fieldHeight + scoreArea);
   context.fillStyle = background;
   context.fillRect(0,0,fieldWidth, fieldHeight);
-  context.closePath();
+   context.closePath();
+   context.beginPath();
+   context.fillStyle = '#9999DD';
+   context.lineStyle=  '#000000';
+  context.arc(fieldWidth, 0, night,0, 2*Math.PI);
+ context.fill();
+ context.stroke();
+ context.closePath();
 }
 
 function drawActors(field, actors){
