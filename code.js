@@ -5,6 +5,24 @@ var scoreArea = 25;
 var background = '#559955';
 var altBackground = '#555599';
 var spriteSize = 15;
+var introText = [
+"Welcome to ARNACOURT",
+"",
+"Food is scarce and hunger the norm",
+"The days are empty and forlorn",
+"There is just one way to carry on.",
+"",
+"In ARNACOURT is food",
+"But you must beware",
+"Something wicked lurks in there.",
+"The ARNAK hungers",
+"And this is his lair.",
+"",
+"Gather food while you can",
+"You're the last surviving man",
+"Avoid the ARNAK, be brave and bold",
+"And finish your task before the night is old."
+];
 var gameOverText = [
 "The Arnak's triumphed.", 
 "The day is done.", 
@@ -54,6 +72,8 @@ $(document).ready(function(){
   context = setupField();
   init();
   createListeners();
+  message = true;
+  showMessage(context, introText);
   setInterval(redraw, 50);
 });
 
@@ -94,9 +114,10 @@ function checkEndOfLevel(field, actors){
 
   // end of level!
   advanceLevel(actors);
-  var t = background;
-  background = altBackground;
-  altBackground = t;
+  var oldbg = background;
+  var oldaltbg = altBackground;
+  background = '#334499';
+  altBackground = '#5544AA';
   setTimeout(function(){
     t = background;
     background = altBackground;
@@ -288,16 +309,19 @@ function clearField(context)
 {
   context.beginPath();
   context.clearRect(0,0,fieldWidth, fieldHeight + scoreArea);
-  context.fillStyle = background;
+  var grd = context.createLinearGradient(0,0,0,fieldHeight);
+  grd.addColorStop(0, background);
+  grd.addColorStop(1, altBackground);
+  context.fillStyle=grd;
   context.fillRect(0,0,fieldWidth, fieldHeight);
-   context.closePath();
-   context.beginPath();
-   context.fillStyle = '#9999DD';
-   context.lineStyle=  '#000000';
+  context.closePath();
+  context.beginPath();
+  context.fillStyle = '#9999DD';
+  context.lineStyle=  '#000000';
   context.arc(fieldWidth, 0, night,0, 2*Math.PI);
- context.fill();
- context.stroke();
- context.closePath();
+  context.fill();
+  context.stroke();
+  context.closePath();
 }
 
 function drawActors(field, actors){
