@@ -178,7 +178,10 @@ function createActors(){
   actors.player = {hide: false, name: 'player', value:0, harm: 0, x:0, y:fieldHeight-scoreArea,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
   actors.arnak  = {hide: false, name: 'arnak', value:0, harm: 1, x:fieldWidth, y:0,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){
 
-    
+    if (actors.player.x < this.x) this.x--;
+    else if(actors.player.x > this.x) this.x++;
+    else if (actors.player.y > this.y) this.y++;
+    else if (actors.player.y < this.y) this.y--;
 
   }, draw: drawArnak};
   for(var c = 0; c < collectables; c++){
