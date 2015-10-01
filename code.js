@@ -5,6 +5,9 @@ var actors = {};
 var collectables = 8;
 var score = 0;
 var scoreArea = 25;
+var level = 1;
+var background = '#559955';
+var altBackground = '#555599';
 
 var library = {
   "select": {"Volume":{"Sustain":0.1,"Decay":0.15,"Punch":0.55}},
@@ -23,9 +26,56 @@ $(document).ready(function(){
 
 function redraw(){
   checkCollisions(context);
+  checkEndOfLevel(context, actors);
   clearField(context); 
   drawActors(context,actors);
   updateScore(context, score);
+
+};
+
+function checkEndOfLevel(field, actors){
+  if (actors.player.hide === true)
+  {
+    // game over
+  }
+
+  for(var a in actors)
+  {
+    var actor = actors[a];
+    if (actor.value > 0 && actor.hide === false) return;
+  }
+
+  // end of level!
+  advanceLevel(actors);
+  var t = background;
+  background = altBackground;
+  altBackground = t;
+  setTimeout(function(){
+    t = background;
+    background = altBackground;
+    altBackground = t;
+    setTimeout(function(){
+      t = background;
+      background = altBackground;
+      altBackground = t;
+      setTimeout(function(){
+        t = background;
+        background = altBackground;
+        altBackground = t;
+      }, 300);
+    }, 300);
+  }, 300);
+};
+
+function advanceLevel(actors){
+  actors.player.x = 0;
+  actors.player.y = fieldHeight - scoreArea;
+  for(var a in actors){
+    var actor = actors[a];
+    if (actor.value > 0) actor.hide = false;
+  }
+
+  level++;
 };
 
 function updateScore(field, score){
@@ -33,7 +83,8 @@ function updateScore(field, score){
   field.lineStyle = '#000000';
   field.fillStyle = '#000000';
   field.font = '10px Verdana';
-  field.fillText('Score: ' + score, 5, fieldHeight);
+  field.fillText('Score: ' + score, 5, fieldHeight + 10);
+  field.fillText('Day: ' + level, 5, fieldHeight + 20);
   field.closePath();
 };
 
@@ -82,12 +133,12 @@ function checkCollisions(field){
 };
 
 function createActors(){
-  actors.player = {hide: false, name: 'player', value:0, harm: 0, x:1, y:1,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
+  actors.player = {hide: false, name: 'player', value:0, harm: 0, x:0, y:fieldHeight-scoreArea,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
   
   for(var c = 0; c < collectables; c++){
     var x = Math.floor(Math.random() * fieldWidth - 10);
     var y = Math.floor(Math.random() * fieldHeight - 10);
-    actors['apple' + c] = {hide:false, value:1, harm: 0, x:x, y:y, width:10, height:10, speed:0, data:{}, tick: function(){}, draw: drawApple};
+    actors['apple' + c] = {hide:false, value:10, harm: 0, x:x, y:y, width:10, height:10, speed:0, data:{}, tick: function(){}, draw: drawApple};
 
   }
 };
@@ -114,7 +165,7 @@ function createListeners(){
 
 function setupField(){
   var field = $('#field');
-  fieldHeight = field.height() - 25;
+  fieldHeight = field.height() - scoreArea;
   fieldWidth = field.width();
   var context = field[0].getContext('2d');
   return context;
@@ -122,7 +173,9 @@ function setupField(){
 
 function clearField(context)
 {
-  context.clearRect(0,0,fieldWidth, fieldHeight);
+  context.clearRect(0,0,fieldWidth, fieldHeight + scoreArea);
+  context.fillStyle = background;
+  context.fillRect(0,0,fieldWidth, fieldHeight);
 }
 
 function drawActors(field, actors){
