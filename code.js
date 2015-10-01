@@ -1,14 +1,22 @@
 var fieldHeight = 0;
 var fieldWidth = 0;
 var context = null;
-var actors = {};
-var collectables = 2;
-var score = 0;
 var scoreArea = 25;
-var level = 1;
 var background = '#559955';
 var altBackground = '#555599';
-var lives = 2;
+var spriteSize = 10;
+var gameOverText = [
+"The Arnak's triumphed.", 
+"The day is done.", 
+"He'll feast on your soul", 
+"You could not have won.",
+"Pray that tonight",
+"He won't choose to strike",
+"Into your reality.",
+"",
+"Game over.  Press any key."];
+
+var lives, actors, collectables, score, level, message;
 
 var library = {
   "select": {"Volume":{"Sustain":0.1,"Decay":0.15,"Punch":0.55}},
@@ -19,14 +27,49 @@ var library = {
 
 var sfx = jsfx.Sounds(library);
 
+function showMessage(field, text){
+  message = true;
+  field.beginPath();
+  field.fillStyle = '#998822';
+  field.strokeStyle = '#000000';
+  field.fillRect(5,5,fieldWidth-10, fieldHeight-10);
+  field.moveTo(5,5);
+  field.lineTo(fieldWidth-5, 5);
+  field.lineTo(fieldWidth-5, fieldHeight-5);
+  field.lineTo(5, fieldHeight-5);
+  field.lineTo(5,5);
+  field.stroke();
+  field.closePath();
+  field.beginPath();
+  field.strokeStyle = '#000000';
+  field.fillStyle = '#FFFFFF';
+  for(var line = 1; line <= text.length; line++){
+    field.fillText(text[line-1], 10, 20*line);
+  }
+  field.closePath();
+
+}
+
 $(document).ready(function(){
   context = setupField();
-  createActors();
+  init();
   createListeners();
   setInterval(redraw, 50);
 });
 
+function init(){
+  lives = 3;
+  actors = {};
+  collectables = 2;
+  score = 0;
+  level = 1;
+  createActors();
+};
+
 function redraw(){
+  if (actors.player == null) return; 
+  if (message === true) return;
+
   checkCollisions(context, actors);
   checkEndOfLevel(context, actors);
   clearField(context); 
@@ -78,19 +121,23 @@ function resetLevel(field, actors)
   }
 
   actors.player.x = 0;
-  actors.player.y = fieldHeight - scoreArea-15;
-  actors.arnak.x = fieldWidth-15;
+  actors.player.y = fieldHeight - scoreArea - spriteSize;
+  actors.arnak.x = fieldWidth-spriteSize;
   actors.arnak.y = 0 
 }
 
 function advanceLevel(actors){
+  level++;
+
   for(var a in actors){
     var actor = actors[a];
-    if (actor.value > 0)
+    if (actor.value > 0){
       actor.hide = false;
+      actor.value = 10 * level;
+    }
 
-    var x = Math.floor(Math.random() * fieldWidth - 10);
-    var y = Math.floor(Math.random() * fieldHeight - 10);
+    var x = Math.floor(Math.random() * fieldWidth - spriteSize*(2/3));
+    var y = Math.floor(Math.random() * fieldHeight - spriteSize*(2/3));
     actor.x = x;
     actor.y = y;
 
@@ -98,13 +145,14 @@ function advanceLevel(actors){
 
   actors.player.x = 0;
   actors.player.y = fieldHeight - scoreArea;
-  actors.arnak.x = fieldWidth-15;
+  actors.player.speed+=2;
+  actors.arnak.x = fieldWidth-spriteSize;
   actors.arnak.y = 0
-  level++;
+  actors.arnak.speed = 1+(0.5*(level-1));
   if (collectables < 10){
-    var x = Math.floor(Math.random() * fieldWidth - 10);
-    var y = Math.floor(Math.random() * fieldHeight - 10);
-    actors['apple' + collectables] = {hide:false, value:10, harm: 0, x:x, y:y, width:10, height:10, speed:0, data:{}, tick: function(){}, draw: drawApple};
+    var x = Math.floor(Math.random() * fieldWidth - spriteSize*(2/3));
+    var y = Math.floor(Math.random() * fieldHeight - spriteSize*(2/3));
+    actors['apple' + collectables] = {hide:false, value:10 * level, harm: 0, x:x, y:y, width:spriteSize*(2/3), height:spriteSize*(2/3), speed:0, data:{}, tick: function(){}, draw: drawApple};
     collectables++;
   } 
 };
@@ -160,40 +208,47 @@ function checkCollisions(field, actors){
       else if (actor.harm > 0)
       {
         sfx.death();
-        lives--;
+        
         if (lives ===0){
-         alert('Game over.');
-         return; 
-       }
+          message = true;
+          init();
+          setTimeout(function(){
+            showMessage(field, gameOverText);
+          }, 60);
 
-       resetLevel(field, actors);
-     }
-   }
+          return; 
+        }
 
- }
+        lives--;
+        resetLevel(field, actors);
+      }
+    }
+
+  }
 
 };
 
 function createActors(){
-  actors.player = {hide: false, name: 'player', value:0, harm: 0, x:0, y:fieldHeight-scoreArea,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
-  actors.arnak  = {hide: false, name: 'arnak', value:0, harm: 1, x:fieldWidth, y:0,width:15,height:15,speed:10,data:{lastX:0, lastY:0}, tick: function(field){
+  actors.player = {hide: false, name: 'player', value:0, harm: 0, x:0, y:fieldHeight-scoreArea,width:spriteSize,height:spriteSize,speed:10*level,data:{lastX:0, lastY:0}, tick: function(field){}, draw: drawPlayer};
+  actors.arnak  = {hide: false, name: 'arnak', value:0, harm: 1, x:fieldWidth, y:0,width:spriteSize,height:spriteSize,speed:1,data:{lastX:0, lastY:0}, tick: function(field){
 
-    if (actors.player.x < this.x) this.x--;
-    if(actors.player.x > this.x) this.x++;
-    if (actors.player.y > this.y) this.y++;
-    if (actors.player.y < this.y) this.y--;
+    if (actors.player.x < this.x) this.x-=this.speed;
+    if(actors.player.x > this.x) this.x+=this.speed;
+    if (actors.player.y > this.y) this.y+=this.speed;
+    if (actors.player.y < this.y) this.y-=this.speed;
 
   }, draw: drawArnak};
   for(var c = 0; c < collectables; c++){
-    var x = Math.floor(Math.random() * fieldWidth - 10);
-    var y = Math.floor(Math.random() * fieldHeight - 10);
-    actors['apple' + c] = {hide:false, value:10, harm: 0, x:x, y:y, width:10, height:10, speed:0, data:{}, tick: function(){}, draw: drawApple};
+    var x = Math.floor(Math.random() * fieldWidth - (spriteSize*(2/3)));
+    var y = Math.floor(Math.random() * fieldHeight - (spriteSize*(2/3)));
+    actors['apple' + c] = {hide:false, value:10, harm: 0, x:x, y:y, width:spriteSize*(2/3), height:spriteSize*(2/3), speed:0, data:{}, tick: function(){}, draw: drawApple};
 
   }
 };
 
 function createListeners(){
   $(window).keydown(function(e){
+    message = false;
     if (e.keyCode === 37){
       actors.player.x-=actors.player.speed;
     }
@@ -222,9 +277,11 @@ function setupField(){
 
 function clearField(context)
 {
+  context.beginPath();
   context.clearRect(0,0,fieldWidth, fieldHeight + scoreArea);
   context.fillStyle = background;
   context.fillRect(0,0,fieldWidth, fieldHeight);
+  context.closePath();
 }
 
 function drawActors(field, actors){
